@@ -1,0 +1,30 @@
+# testes
+
+class Node:
+    def __init__(self, node_id, neighbors):
+        self.node_id = node_id
+        self.neighbors = neighbors
+
+    def send_message(self, message):
+        # Simula o envio de mensagem para os vizinhos
+        for neighbor in self.neighbors:
+            print(f"Node {self.node_id} sending message to Node {neighbor}: {message}")
+
+# Criando os nós (PCs) da topologia
+nodes = {
+    1: Node(node_id=1, neighbors=[2, 6]),
+    2: Node(node_id=2, neighbors=[1, 3]),
+    3: Node(node_id=3, neighbors=[2, 4]),
+    4: Node(node_id=4, neighbors=[3, 5]),
+    5: Node(node_id=5, neighbors=[4, 6]),
+    6: Node(node_id=6, neighbors=[1, 5]),
+}
+
+# Simulando a comunicação entre os nós
+for node_id, node in nodes.items():
+    message = f"Hello from Node {node_id}!"
+    node.send_message(message)
+
+# Simulando a comunicação com a Autoridade Certificadora (AC)
+ac_message = "Hello from Autoridade Certificadora!"
+print(f"AC sending message: {ac_message}")
