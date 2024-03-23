@@ -1,40 +1,61 @@
-import socket
-import threading
+from socket import socket, AF_INET, SOCK_DGRAM
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
-# Função para lidar com a comunicação de cada nó
-def handle_connection(node_socket, node_id):
-    print(f"Nó {node_id} pronto para receber mensagens.")
-    while True:
-        data, addr = node_socket.recvfrom(1024)
-        print(f"Mensagem recebida de {addr} no nó {node_id}: {data.decode()}")
-        # Processar a mensagem, se necessário
+# Função para enviar uma solicitação para o servidor
+def send_request(node_id, port, server_address, public_key):
+    client_socket = socket(AF_INET, SOCK_DGRAM)
 
-# Função para iniciar um nó
-def start_node(node_id, port, neighbors):
-    host = '127.0.0.1'
-    node_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    node_socket.bind((host, port))
-    print(f"Nó {node_id} ouvindo na porta {port}")
-    while True:
-        data, addr = node_socket.recvfrom(1024)
-        print(f"Mensagem recebida de {addr} no nó {node_id}: {data.decode()}")
-        # Processar a mensagem, se necessário
-        if addr[1] in neighbors:
-            threading.Thread(target=handle_connection, args=(node_socket, node_id)).start()
-        else:
-            print(f"Conexão de um nó não autorizado com {addr} no nó {node_id}. Fechando conexão.")
+    # Envia a solicitação apenas uma vez
+    message = f"Solicitacao do Node {node_id}"
+    client_socket.sendto(message.encode(), server_address)
 
-# Definindo os detalhes de cada nó e seus vizinhos
-nodes = {
-    1: {'port': 5001, 'neighbors': [5002, 5006]},
-    2: {'port': 5002, 'neighbors': [5001, 5003]},
-    3: {'port': 5003, 'neighbors': [5002, 5004]},
-    4: {'port': 5004, 'neighbors': [5003, 5005]},
-    5: {'port': 5005, 'neighbors': [5004, 5006]},
-    6: {'port': 5006, 'neighbors': [5001, 5005]},
-    'Autoridade Certificadora': {'port': 6000, 'neighbors': []}  # A Autoridade Certificadora não tem vizinhos
-}
+    # Recebe a resposta do servidor uma vez
+    data, _ = client_socket.recvfrom(2048)
+    reply = data.decode()
+    print(f"Resposta recebida pelo Node {node_id}: {reply}")
 
-# Iniciar os nós
-for node_id, config in nodes.items():
-    threading.Thread(target=start_node, args=(node_id, config['port'], config['neighbors'])).start()
+    client_socket.close()
+
+# Função principal para iniciar a comunicação entre os nós
+def main():
+    # Dicionário para armazenar as informações dos nós
+    nodes = {
+        'PC1': {'port': 5001, 'public_key': None},
+        'PC2': {'port': 5002, 'public_key': None},
+        'PC3': {'port': 5003, 'public_key': None},
+        'PC4': {'port': 5004, 'public_key': None},
+        'PC5': {'port': 5005, 'public_key': None},
+        'PC6': {'port': 5006, 'public_key': None},
+    }
+
+    # Gerar chaves públicas para os nós e registrar na Autoridade Certificadora
+    ac_address = ('localhost', 1234)
+    for node_id, config in nodes.items():
+        # Gera uma chave privada e extrai a chave pública
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        config['public_key'] = private_key.public_key()
+
+        # Serializa a chave pública em formato PEM
+        public_key_bytes = config['public_key'].public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        # Envia a chave pública para a Autoridade Certificadora
+        client_socket = socket(AF_INET, SOCK_DGRAM)
+        register_message = f"REGISTER|{node_id}|{public_key_bytes.decode()}"
+        client_socket.sendto(register_message.encode(), ac_address)
+        data, _ = client_socket.recvfrom(2048)
+        reply = data.decode()
+        print(f"Resposta recebida pelo Node {node_id}: {reply}")
+        client_socket.close()
+
+    # Envio de mensagens entre os nós
+    for node_id, config in nodes.items():
+        send_request(node_id, config['port'], ac_address, config['public_key'])
+
+# Verifica se o script está sendo executado diretamente
+if __name__ == "__main__":
+    # Chama a função principal para iniciar a comunicação entre os nós
+    main()
