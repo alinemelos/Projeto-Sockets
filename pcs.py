@@ -21,12 +21,12 @@ def send_request(node_id, port, server_address, public_key):
 def main():
     # Dicionário para armazenar as informações dos nós
     nodes = {
-        'PC1': {'port': 5001, 'public_key': None},
-        'PC2': {'port': 5002, 'public_key': None},
-        'PC3': {'port': 5003, 'public_key': None},
-        'PC4': {'port': 5004, 'public_key': None},
-        'PC5': {'port': 5005, 'public_key': None},
-        'PC6': {'port': 5006, 'public_key': None},
+        'PC1': {'port': 5001, 'public_key': None, 'neighbors': ['PC6', 'PC2']},
+        'PC2': {'port': 5002, 'public_key': None, 'neighbors': ['PC1', 'PC3']},
+        'PC3': {'port': 5003, 'public_key': None, 'neighbors': ['PC2', 'PC4']},
+        'PC4': {'port': 5004, 'public_key': None, 'neighbors': ['PC3', 'PC5']},
+        'PC5': {'port': 5005, 'public_key': None, 'neighbors': ['PC4', 'PC6']},
+        'PC6': {'port': 5006, 'public_key': None, 'neighbors': ['PC5', 'PC1']},
     }
 
     # Gerar chaves públicas para os nós e registrar na Autoridade Certificadora
